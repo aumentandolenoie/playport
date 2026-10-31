@@ -112,6 +112,12 @@ enum PrivateReportUpload {
                     UserDefaults.standard.set(true, forKey: enabledKey)
                     message("Private archive enabled", "Future Report a problem ZIPs will upload automatically. The normal iOS share sheet remains available.")
                 } catch {
+                    let query: [String: Any] = [
+                        kSecClass as String: kSecClassGenericPassword,
+                        kSecAttrService as String: service,
+                        kSecAttrAccount as String: tokenAccount
+                    ]
+                    SecItemDelete(query as CFDictionary)
                     message("Not configured", "GitHub privacy/access verification failed: \(error.localizedDescription)")
                 }
             }
