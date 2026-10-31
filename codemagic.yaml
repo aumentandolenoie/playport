@@ -11,3 +11,36 @@ workflows:
           set -euo pipefail
           python3 -m unittest discover -v -s tools/tests -p test_ktane_triage.py
           ./pp test --quick
+  playport-build-preflight:
+    name: Playport IPA toolchain readiness
+    instance_type: linux_x2
+    max_build_duration: 30
+    environment:
+      ubuntu: 24.04
+    scripts:
+      - name: Check required toolchain locations and commands
+        script: |
+          set -euo pipefail
+          ./pp test --quick
+          python3 - <<'PY'
+          import os, shutil, sys
+          required = [
+              "clang", "clang++", "ld64.lld", "llvm-ar",
+              "llvm-nm", "llvm-objdump", "llvm-objcopy",
+              "llvm-lipo", "gcc", "make", "bison", "flex",
+              "msgfmt", "cmake", "ninja", "meson", "python3",
+              "swift", "xxd", "openssl", "patch", "git",
+              "rsync", "7za"
+          ]
+          missing = [name for name in required if not shutil.which(name)]
+          paths = [name for name in ("LLVM_MINGW", "DARWIN_SDK")
+                   if not os.path.isdir(os.environ.get(name, ""))]
+          if missing:
+              print("Missing tools: " + ", ".join(missing))
+          if paths:
+              print("Unconfigured toolchains: " + ", ".join(paths))
+          if missing or paths:
+              print("IPA build blocked; install required private inputs before compiling.")
+              sys.exit(2)
+          print("Host prerequisites appear present. This does not validate the SDK versions.")
+          PY
