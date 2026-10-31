@@ -32,3 +32,18 @@ The tool reads only `playport.log` and `playport.previous.log` from archives, do
 **Do not** globally make RX pages writable, suppress exceptions, disable code invalidation, or change JIT protection for all games based solely on these logs. These changes may introduce correctness and security regressions.
 
 Build notes: [docs/BUILDING.md](BUILDING.md). Keep the main branch unchanged until a fix is both compiled and verified on-device.
+
+## Confirmed existing mechanisms (source inspection)
+
+- `patches/fex-port/0048-FEX-wake-the-dormant-Mono-backpatcher-optimisation-o.patch` already installs a Mono bridge with an anonymous RX/RW alias table and `IosMonoResolveRW`.
+- `patches/fex-port/0050-ARM64EC-anon-alias-atomic-coverage-and-SMC-retry.patch` already resolves anonymous aliases for atomic operations and handles a specific unaligned SMC retry, documented for Book of the Dead. This is **not** an established fix for KTANE.
+- `patches/fex-port/0025-iOS-dual-map-fast-write-infra-trap-mode-default-iOS-.patch` handles the fixed JIT pool, which is distinct from Mono's anonymous aliases.
+- Do not make the RX mapping globally writable or blindly redirect stores: first establish whether the failing address is registered to an eligible dual mapping.
+
+## Analyzer regression tests
+
+```bash
+python3 -m unittest discover -s tools -p 'test_ktane_triage.py'
+```
+
+Tests cover ZIP report parsing only, **not** FEX behavior or actual gameplay. A host CI pass alone does not prove a playable IPA.
