@@ -828,7 +828,7 @@ private struct GameDetailPage: View {
         }
         PadRow(id: "opt:report", title: "Report a problem", value: "Shares a zip of the logs", accessory: .chevron, style: .plain,
                hint: "Share") { ProblemReport.share(t) }
-        PadRow(id: "opt:private-report", title: "Private log archive", value: "Configure automatic encrypted-token GitHub upload", accessory: .chevron, style: .plain,
+        PadRow(id: "opt:private-report", title: "Private log archive", value: "Upload reports to a private GitHub repo", accessory: .chevron, style: .plain,
                hint: "Configure") { PrivateReportUpload.configure() }
         uninstallRow(t)
     }
@@ -1333,8 +1333,8 @@ enum ProblemReport {
             let zip = await archive(urls, name: t.id)
             LibraryModel.log("report a problem for \(t.id): sharing \(urls.map(\.lastPathComponent).joined(separator: ", "))"
                              + (zip.map { " as \($0.lastPathComponent)" } ?? " (not zipped)"))
-            if let zip { await PrivateReportUpload.uploadIfEnabled(zip, gameID: t.id) }
             present(zip.map { [$0] } ?? urls)
+            if let zip { Task { await PrivateReportUpload.uploadIfEnabled(zip, gameID: t.id) } }
         }
     }
 
