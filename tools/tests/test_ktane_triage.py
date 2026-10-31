@@ -32,6 +32,23 @@ class ReportTriageTests(unittest.TestCase):
             self.assertEqual(current["counts"]["access_violation"], 2)
             self.assertEqual(current["exits"][0]["seconds"], 4)
 
+    def test_distinguishes_near_null_and_mapped_alias(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "fault.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                z.writestr("playport.log", "\\n".join([
+                    "[store-noalias] addr=0x54 NO pool/anon alias",
+                    "[fault_rip] addr=0x54 kr=1(INVALID_ADDRESS)",
+                    "[alias-own] OWNED by live anon JIT alias",
+                    "[mach-deliver] no TEB owns sp=0x73fd2d0000",
+                    "[av-detail] p0=READ p1=0x54",
+                ]))
+            counts = analyze(archive)["logs"][0]["counts"]
+            self.assertEqual(counts["near_null_fault"], 2)
+            self.assertEqual(counts["alias_owned"], 1)
+            self.assertEqual(counts["unowned_guest_stack"], 1)
+            self.assertEqual(counts["store_noalias"], 1)
+
     def test_no_matching_logs(self):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "empty.zip"
