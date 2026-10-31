@@ -36,7 +36,7 @@ class ReportTriageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "fault.zip"
             with zipfile.ZipFile(archive, "w") as z:
-                z.writestr("playport.log", "\\n".join([
+                z.writestr("playport.log", "\n".join([
                     "[store-noalias] addr=0x54 insn=0xb84000c8 NO pool/anon alias",
                     "[fault_rip] addr=0x54 kr=1(INVALID_ADDRESS)",
                     "[alias-own] OWNED by live anon JIT alias",
