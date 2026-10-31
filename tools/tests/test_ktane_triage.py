@@ -50,6 +50,22 @@ class ReportTriageTests(unittest.TestCase):
             self.assertEqual(counts["unowned_guest_stack"], 1)
             self.assertEqual(counts["store_noalias"], 1)
 
+    def test_near_null_instruction_repeats_across_sessions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "repeat.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                z.writestr("playport.log", "\n".join([
+                    "[store-noalias] addr=0x54 insn=0xb84000c8",
+                    "[fault_rip] addr=0x54 kr=1(INVALID_ADDRESS)",
+                    "title: done exit=0xc0000005 after_s=4",
+                    "[store-noalias] addr=0x54 insn=0xb84000c8",
+                    "[fault_rip] addr=0x54 kr=1(INVALID_ADDRESS)",
+                    "title: done exit=0xc0000005 after_s=4",
+                ]))
+            result = analyze(archive)["logs"][0]
+            self.assertEqual(result["counts"]["near_null_load"], 2)
+            self.assertEqual(len(result["exits"]), 2)
+
     def test_no_matching_logs(self):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "empty.zip"
