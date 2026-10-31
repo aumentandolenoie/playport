@@ -18,7 +18,7 @@ PATTERNS = {
     "av_detail": re.compile(r"\[av-detail\]"),
     "alias_owned": re.compile(r"\[alias-own\].*OWNED by live anon JIT alias"),
     "unowned_guest_stack": re.compile(r"\[mach-deliver\].*no TEB owns sp="),
-    "near_null_load": re.compile(r"\\[store-noalias\\].*addr=0x54\\b.*insn=0xb84000c8", re.I),
+    "near_null_load": re.compile(r"\[store-noalias\].*addr=0x54\b.*insn=0xb84000c8", re.I),
     "near_null_fault": re.compile(r"(?:\[fault_rip\]|\[av-detail\]).*(?:addr=0x54\b|p1=0x54\b)"),
 }
 EXIT = re.compile(r"\btitle: done\s+exit=(0x[0-9a-f]+)\s+after_s=(\d+)", re.I)
