@@ -47,3 +47,11 @@ python3 -m unittest discover -s tools -p 'test_ktane_triage.py'
 ```
 
 Tests cover ZIP report parsing only, **not** FEX behavior or actual gameplay. A host CI pass alone does not prove a playable IPA.
+
+## Closer reading of the October 31 report
+
+The runtime emits multiple distinct event classes. In `playport.log`, a fault at `0x702b823e8c` is marked `p0=WRITE` with protection failure, followed by `[alias-own] ... OWNED by live anon JIT alias`. That is **not** evidence of a missing alias for this address: the runtime knows its backing RX/RW alias. Separately, the eventual read at `0x54` is a near-null guest fault; a generic `[store-noalias]` record at such an address must not be treated as proof of a missing anonymous JIT mapping. Correlate each candidate with its own `p0`, `p1`, program counter, and region/alias lines.
+
+The report also shows `[mach-deliver] no TEB owns sp=0x73fd2d0000 -> BEST-EFFORT delivery on guest stack` on repeated Mono-related exceptions. This is worth investigating in Wine/FEX exception delivery: confirm whether TEB/stack ownership and ARM64EC context restoration are correct when a native Mono thread faults. **Neither a bad stack owner nor a missing JIT alias is established as the root cause yet.**
+
+A future runtime instrumentation patch should record *one complete exception chain* (thread ID, event order, original fault PC, guest RIP, protection result, alias lookup, exception dispatch result) with bounded log volume; otherwise repeated normal handled JIT faults may obscure the first unhandled exception. The primary fix must follow that chain, not the last `0xC0000005` alone.
