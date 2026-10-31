@@ -74,3 +74,18 @@ At the **first** `0x54` access, capture guest GPRs and guest RIP *before* Wine e
 ### Readiness gate
 
 No new iPhone IPA should be labeled *fixed* until the first-fault state is resolved in source and the same game passes a fresh on-device launch. Buildability, passing Python report tests and absence of the final code in a later log are insufficient independently.
+
+## Real-report validation (two exports, October 31)
+
+The original ZIPs were checked directly, not inferred from the synthetic fixtures. In `playport.log`:
+
+| Export | `[store-noalias] addr=0x54 insn=0xb84000c8` | `[fault_rip] ... addr=0x54` | `title: done exit=0xc0000005` |
+| --- | ---: | ---: | ---: |
+| 16:55:25 | 2 | 1 | 1 |
+| 17:05:57 | 8 | 4 | 4 |
+
+Two `store-noalias` records may occur per fatal read, so **do not equate diagnostic line counts to independent crashes**. The second archive also includes prior logs; avoid double-counting them.
+
+### Delivery/build limitation
+
+The checked-in `.github/workflows/checks.yml` is source-only by design. It deliberately does not build or upload an IPA, and `tools/tests/test_release_ci.py` enforces the approved workflow. Don't bypass that policy or commit a public IPA deployment workflow merely to test KTANE. A real app build still requires the toolchains detailed in `docs/BUILDING.md`, an authorized signing and distribution route, and on-device runtime test. No source-only test establishes that the crash is fixed.
