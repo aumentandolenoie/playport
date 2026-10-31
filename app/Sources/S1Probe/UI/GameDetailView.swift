@@ -1348,7 +1348,7 @@ enum ProblemReport {
         guard !urls.isEmpty else { return nil }
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent("Report a problem", isDirectory: true)
-        try? fm.removeItem(at: root)   // the last report's
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let stamp = DateFormatter()
         stamp.locale = Locale(identifier: "en_US_POSIX")
         stamp.dateFormat = "yyyyMMdd-HHmmss"
