@@ -828,6 +828,8 @@ private struct GameDetailPage: View {
         }
         PadRow(id: "opt:report", title: "Report a problem", value: "Shares a zip of the logs", accessory: .chevron, style: .plain,
                hint: "Share") { ProblemReport.share(t) }
+        PadRow(id: "opt:private-report", title: "Private log archive", value: "Upload reports to a private GitHub repo", accessory: .chevron, style: .plain,
+               hint: "Configure") { PrivateReportUpload.configure() }
         uninstallRow(t)
     }
 
@@ -1332,6 +1334,7 @@ enum ProblemReport {
             LibraryModel.log("report a problem for \(t.id): sharing \(urls.map(\.lastPathComponent).joined(separator: ", "))"
                              + (zip.map { " as \($0.lastPathComponent)" } ?? " (not zipped)"))
             present(zip.map { [$0] } ?? urls)
+            if let zip { Task { await PrivateReportUpload.uploadIfEnabled(zip, gameID: t.id) } }
         }
     }
 
@@ -1345,7 +1348,7 @@ enum ProblemReport {
         guard !urls.isEmpty else { return nil }
         let fm = FileManager.default
         let root = fm.temporaryDirectory.appendingPathComponent("Report a problem", isDirectory: true)
-        try? fm.removeItem(at: root)   // the last report's
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         let stamp = DateFormatter()
         stamp.locale = Locale(identifier: "en_US_POSIX")
         stamp.dateFormat = "yyyyMMdd-HHmmss"
