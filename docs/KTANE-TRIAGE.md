@@ -55,3 +55,22 @@ The runtime emits multiple distinct event classes. In `playport.log`, a fault at
 The report also shows `[mach-deliver] no TEB owns sp=0x73fd2d0000 -> BEST-EFFORT delivery on guest stack` on repeated Mono-related exceptions. This is worth investigating in Wine/FEX exception delivery: confirm whether TEB/stack ownership and ARM64EC context restoration are correct when a native Mono thread faults. **Neither a bad stack owner nor a missing JIT alias is established as the root cause yet.**
 
 A future runtime instrumentation patch should record *one complete exception chain* (thread ID, event order, original fault PC, guest RIP, protection result, alias lookup, exception dispatch result) with bounded log volume; otherwise repeated normal handled JIT faults may obscure the first unhandled exception. The primary fix must follow that chain, not the last `0xC0000005` alone.
+
+## Oct 31 crash: decoded fault and next debugging target
+
+Direct inspection of the second ZIP's `playport.log` at lines 18827–18849 establishes:
+
+1. A Mono-related code allocation is registered with `[jit-pool] anon RWX`; an earlier protected-page store on thread `002c` triggers Wine exception dispatch and a context restore.
+2. `[store-noalias] addr=0x54 insn=0xb84000c8 pc=0x11b829208` follows. **Despite this diagnostic tag's name, instruction 0xb84000c8 is an ARM64 `LDR W8, [X6]`-family load, not a store.**
+3. `[fault_rip] ... kr=1(INVALID_ADDRESS)`, `[fault-rgn] ... region=unknown/foreign`, and `[exc-disp] ... p0=0 p1=54` independently establish a **read at 0x54**, not a missing writable alias.
+4. FEX reconstructs guest RIP `0x73f9724175`, in the loaded Mono image, and forwards `C0000005 AV READ of 54`. An ensuing `C000001D` appears on an exception/crash path. The near-null read is a better primary target than the misleading `store-noalias` label.
+
+**Important:** these observations do not yet prove whether the null register was caused by Mono logic, a preceding exception-context restore, or FEX's translated register state. Do not patch allocation protections on the basis of the misleading log tag.
+
+### Concrete next runtime probe
+
+At the **first** `0x54` access, capture guest GPRs and guest RIP *before* Wine exception dispatch and *after* context reconstruction (the `[set-ctx]` transition), plus the exception flags and owner thread. Compare the register that supplies the base of `LDR W8, [X6]` and the relevant guest x86 registers against a Windows baseline, if available. Keep instrumentation behind an opt-in environment variable and a small log cap. Then examine the preceding `[set-ctx] ... sp=0x73fd2d0000` on thread `002c` to determine whether an exception-handling path has altered state.
+
+### Readiness gate
+
+No new iPhone IPA should be labeled *fixed* until the first-fault state is resolved in source and the same game passes a fresh on-device launch. Buildability, passing Python report tests and absence of the final code in a later log are insufficient independently.
