@@ -37,7 +37,7 @@ class ReportTriageTests(unittest.TestCase):
             archive = Path(folder) / "fault.zip"
             with zipfile.ZipFile(archive, "w") as z:
                 z.writestr("playport.log", "\\n".join([
-                    "[store-noalias] addr=0x54 NO pool/anon alias",
+                    "[store-noalias] addr=0x54 insn=0xb84000c8 NO pool/anon alias",
                     "[fault_rip] addr=0x54 kr=1(INVALID_ADDRESS)",
                     "[alias-own] OWNED by live anon JIT alias",
                     "[mach-deliver] no TEB owns sp=0x73fd2d0000",
@@ -45,6 +45,7 @@ class ReportTriageTests(unittest.TestCase):
                 ]))
             counts = analyze(archive)["logs"][0]["counts"]
             self.assertEqual(counts["near_null_fault"], 2)
+            self.assertEqual(counts["near_null_load"], 1)
             self.assertEqual(counts["alias_owned"], 1)
             self.assertEqual(counts["unowned_guest_stack"], 1)
             self.assertEqual(counts["store_noalias"], 1)
